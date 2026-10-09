@@ -309,11 +309,20 @@ int main(int argc, char* argv[]) {
 		int progress = percentage(i, data.size());
 		std::cout << "\r" << progress << "%" << std::flush;
 		data_point_pair cur = data[i];
-		if(count_times.find(cur.num_cars) != count_times.end()){
-			std::vector<TimeCode> times_list = count_times[cur.num_cars];
-			times_list.push_back(cur.t);
-			count_times[cur.num_cars] = times_list;
-		} else {
+
+		// Aleksandra:
+		// Old version: creates a new vector. It copies the whole list, added one new time, and copies the list back.
+		// When the list gets big, copying is very slow.
+		//if(count_times.find(cur.num_cars) != count_times.end()){
+		//	std::vector<TimeCode> times_list = count_times[cur.num_cars];
+		//	times_list.push_back(cur.t);
+		//	count_times[cur.num_cars] = times_list;
+
+		// New version: adds current time to a vector that already exists in cout_times.
+		auto it = count_times.find(cur.num_cars);
+		if(it != count_times.end()){
+			it->second.push_back(cur.t);
+		}else{
 			count_times[cur.num_cars] = std::vector<TimeCode>{cur.t};
 		}
 	}
@@ -340,7 +349,9 @@ int main(int argc, char* argv[]) {
 	res.x_data = x_data;
 	res.y_data = y_data;
 	res.plotted_duration = TimeCode(0, 0, DURATION_10MIN);
-	res.plotted_duration.WasteTimeAndBeSlow();
+	// Aleksandra: I decided not to call WasteTimeAndBeSlow() because my partner for the code review noted
+	// that it multiplies 0 by 0 for billions of times. It's not stored anywhere and takes a lot of time.
+	// res.plotted_duration.WasteTimeAndBeSlow();
 
 
 	generateTerminalOutput(res);

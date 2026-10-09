@@ -193,8 +193,40 @@ bool BigInteger::operator<(const BigInteger& other) const {
 	return false; // They are exactly equal
 }
 
-
 //bool BigInteger::operator*(const BigInteger& other) const {
 //	// TODO: implement this
 //}
+
+// Aleksandra:
+// I commented out the old version above and implemented it below.
+// Multiplying two BigIntegers must give a BigInteger, so the return type is BigInteger.
+// Simple idea: multiply digit by digit using the operator+ that already exists.
+// For example 12 * 34: take the digits of 34 from left to right.
+//   digit 3: result = 0 * 10 + 12 + 12 + 12 = 36
+//   digit 4: result = 36 * 10 + 12 + 12 + 12 + 12 = 408
+BigInteger BigInteger::operator*(const BigInteger& other) const {
+	BigInteger result = BigInteger("0");
+ 
+	// Digits->at(0) is the leftmost (biggest) digit, so this goes from left to right
+	for(size_t j = 0; j < other.digits->size(); j++){
+ 
+		// Move the result one place to the left (times 10) by adding a "0" at the end.
+		// If the result is still 0, I skip this so we don't get "00".
+		if(result.ToString() != "0"){
+			result = BigInteger(result.ToString() + "0");
+		}
+ 
+		// Add this number as many times as the current digit says (0 to 9 times)
+		for(int k = 0; k < other.digits->at(j); k++){
+			result = result + *this; // operator+ only looks at the digits, not at the sign
+		}
+	}
+ 
+	// minus * plus = minus, minus * minus = plus.
+	// If the answer is 0, I do not add "-" because "-0" is not correct.
+	if(this->is_negative != other.is_negative && result.ToString() != "0"){
+		result.MakeNegative();
+	}
+	return result;
+}
     

@@ -10,14 +10,27 @@
 
 #include "Sim_Math.h"
 
+// Aleksandra:
+// Old version: uses recursion. I decided to remove it because each call of the function makes another call, which takes time.
+
+// double power_recursive(double a, int b){
+//	if(b == 1){
+//		return a;
+//	}
+//	double tmp = a * power_recursive(a, b-1);
+//	return tmp;
+//}
+
+// New version: uses standard for loop instead of recursion.
 
 double power_recursive(double a, int b){
-	if(b == 1){
-		return a;
-	}
-	double tmp = a * power_recursive(a, b-1);
-	return tmp;
+    double result = 1;
+    for(int i = 0; i < b; i++){
+        result = result * a;
+    }
+    return result;
 }
+
 
 double power(double a, int b){
 	if(b == 0){
@@ -209,31 +222,38 @@ int rc = sqlite3_open("CRASH_LANCASTER_2024.db", &db); // note c_str() converts 
 	// Step 3. Count all adscrashes on each dOW to build the map
 	std::unordered_map<std::string, double> crash_prob_map;
 	
-	for(int dow = 1; dow < 8; dow++){ // iterate over each day
-	int count = 0;
-	for(size_t i = 0; i < CRNs.size(); i++){ // count the number of crashes from the result that are dow
-				const char* third_sql_query = "SELECT * FROM incidents WHERE CRN = ? AND DAY_OF_WEEK = ?;";
-			rc = prepare(db, third_sql_query, &stmt);
+// Aleksandra:
+// Old version: prepare() prepares an SQL query so that SQLite can execute it.
+// if we have a lot of accident IDs in the database, for example, 10 000, then the program will create a lot of queries 
+// for each day. We don't need that repetition since SQL query is the same every time. Only CRN and DAY_OF_WEEK parameters change.
+// Therefore, it's better to prepare the query once and then reuse it with different parameters.
 
-// https://sqlite.org/c3ref/bind_blob.html
-sqlite3_bind_int64(stmt, 1, CRNs.at(i)); // "bind", put CRN into query for first question mark
-sqlite3_bind_int(stmt, 2, dow); // "bind", put day of week code into query for second question mark
-			
+	//for(int dow = 1; dow < 8; dow++){
+	//int count = 0;
+	//for(size_t i = 0; i < CRNs.size(); i++){
+	//			const char* third_sql_query = "SELECT * FROM incidents WHERE CRN = ? AND DAY_OF_WEEK = ?;";
+	//		rc = prepare(db, third_sql_query, &stmt);
+
+// New version: prepare() is executed once, not inside the loop. 
+	
+	// New version: prepare the query only once
+	const char* third_sql_query =
+		"SELECT * FROM incidents WHERE CRN = ? AND DAY_OF_WEEK = ?;";
+	rc = prepare(db, third_sql_query, &stmt);
+	for(int dow = 1; dow < 8; dow++){
+		int count = 0;
+		for(size_t i = 0; i < CRNs.size(); i++){
+			sqlite3_reset(stmt);
+			sqlite3_bind_int64(stmt, 1, CRNs[i]);
+			sqlite3_bind_int(stmt, 2, dow);
 			while((rc = sqlite3_step(stmt)) == SQLITE_ROW){
-			//const int injury_count = sqlite3_column_int(stmt, 36);
-			//std::cout << "CRN: " << CRNs.at(i) << "  injury count: "  << injury_count << std::endl;
-			count++;}
-
-			// For the database it's 1-7 for Sunday - Saturday, but for the function it's 0-6
+				count++;
+			}
 		}
-		//std::cout << "Day: " << day_of_week_name(dow-1) << " count : " << count << std::endl;
-	crash_prob_map[day_of_week_name(dow-1)] += static_cast<double>(count) / total_crashes; // add the probability of crash on this day
+		crash_prob_map[day_of_week_name(dow - 1)] +=
+			static_cast<double>(count) / total_crashes;
+	}
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+	return crash_prob_map;
 }
-
-sqlite3_finalize(stmt);
-sqlite3_close(db);
-
-return crash_prob_map;
-}
-
-

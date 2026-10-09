@@ -19,6 +19,7 @@ class BigInteger {
 		void SetDigit(size_t pos, unsigned short int new_digit);
 		BigInteger(const BigInteger &bi);
 		BigInteger operator+(const BigInteger& other) const; // addition
+		BigInteger operator*(const BigInteger& other) const; // multiplication
 		BigInteger operator++(int); // post-increment
 		bool operator<(const BigInteger& other) const;
 
